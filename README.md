@@ -23,17 +23,17 @@ Please also make sure you have the following packages: pandas, numpy, decouple.
 
 First, clone this repository in a folder of your choice:
 
-	`git clone https://github.com/grassoste/GP4_standalone.git`
+	git clone https://github.com/grassoste/GP4_standalone.git
 
 Then modify the file conf.env adding the absolute path to the required programs.
 
 To see the help with the possible options just type:
 
-	`./GP4.py -h`
+	./GP4.py -h
 
 We suggest to first test the installation by running a fasta file with a single protein, simply doing:
 
-	`./GP4.py -i Fasta_file`
+	./GP4.py -i Fasta_file
 
 
 ### Cite us!
