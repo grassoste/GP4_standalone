@@ -12,18 +12,14 @@ import io
 import re
 import math
 from io import BytesIO
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, PIPE
 import datetime
 import multiprocessing as mp
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 import decouple
 import numpy as np
-import requests
-import hashlib
-import pickle
-import base64
-import json
+
 
 
 
@@ -52,20 +48,13 @@ parser.add_argument('-o', '--output', help='Output folder name', required=False,
 parser.add_argument('-n', '--name', help='Output file name', required=False) # default='Test') #  TODO readd default value at the end
 parser.add_argument('-r', '--run', help='\'data\' to generate data; \'pred\' requires generated data as input; \'all\' (default)',
                     choices=['data', 'pred', 'all'] ,required=False, default='all')
-#parser.add_argument('-m', '--md5', help='Compare md5sum', required=False)
-# parser.add_argument('-o', '--output', help='Output folder name', required=False, default='Test')
 parser.add_argument('-v', '--version', action='version', version='%(prog)s v. 1.0-gamma')
 args = parser.parse_args()
 
 t_start = datetime.datetime.now()
 
 
-def md5(fname):
-    hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+
 
 if args.run == 'data' or args.run == 'all':
     full_path = os.path.abspath((args.input))
@@ -868,24 +857,15 @@ if args.run == 'pred' or args.run == 'all':
     results_df = results_df.drop(labels=['# ID_SigP5', 'SEQENCE_ID_Phobius', 'FASTA-ID_PrediSi', 'ID_TatP', 'ID_LipoP', 'ID_TMHMM', 'ID_PCB'], axis=1) #'SeqID_Psort'
     results_df = results_df.rename(columns={"name_SigP4": "Protein_ID"})
     results_df['Protein_ID'] = old_ids
-    #print(results_df)
 
 
     with open(outfile_results, 'w') as handle:
         results_df.to_csv(handle, sep='\t')
 
-    # pickled_df = pickle.dumps(results_df)
-    # pickled_df_64b = base64.b64encode(pickled_df)
-    # pickled_df_64b_str = pickled_df_64b.decode('utf-8')
-    #
-    # r = requests.post('http://gp4.hpc.rug.nl/api/Results_in', json={"name": str(filename_w_ext), "content": pickled_df_64b_str, "md5sum": md5sum})
-    # logging.info("Transfering back to webserver. Status: " + str(r.status_code) + ".")
 
-    #print(r.json())
 
 t_end = datetime.datetime.now()
 t_diff = t_end - t_start
 logging.info("Run finished at " + str(t_end) + ", in " + str(t_diff) + ". You can find the final results in: " + outfile_results)
 shutil.move('GP4_'+log_name+'.log', 'Results/' + new_foldername)
-#shutil.move(new_foldername, 'Results/')
-#shutil.move('logfile_' + filename + '.log', 'Results/' + new_foldername)
+
