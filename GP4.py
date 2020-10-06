@@ -30,7 +30,6 @@ SignalP5_path = config('SIGNALP5')
 Phobius_path = config('PHOBIUS')
 LipoP_path = config('LIPOP')
 TMHMM_path = config('TMHMM')
-#PSortb_path = config('PSORTB')
 TatP_path = config('TATP')
 Interpro_path = config('INTERPRO')
 PERL5LIB = config('PERL5LIB')
@@ -42,10 +41,10 @@ __author__ = 'StefanoGrasso'
 parser = argparse.ArgumentParser(description='Script to perform a proteomic based consensus prediction of '
                                              'protein localization in Gram+. Written by Stefano Grasso (c).',
                                  prog='GP4')
-parser.add_argument('-i', '--input', help='Input file', required=True)                                           #psortb-results_uniprtoavail.shortid_T9Qwh
-                    #default='/mnt/BA5ACC9C5ACC5733/ownCloud/ProteinFactory/Programs/Test.fasta') #.fasta')  #BS_all_SP_mix.fasta #/home/stefano/ownCloud/ProteinFactory/Programs/Test.fasta psortb-results_uniprtoavail.shortid.faa psortb-results_uniprtoavail.shortid.faa
-parser.add_argument('-o', '--output', help='Output folder name', required=False, default='Results') #  TODO readd default value at the end
-parser.add_argument('-n', '--name', help='Output file name', required=False) # default='Test') #  TODO readd default value at the end
+parser.add_argument('-i', '--input', help='Input file', required=True)
+parser.add_argument('-o', '--output', help='Output folder name', required=False, default='Results')
+parser.add_argument('-n', '--name', help='Output file name', required=False)
+parser.add_argument('-t', '--threads', help='Number of threads to be used. Default: all.', required=False)
 parser.add_argument('-r', '--run', help='\'data\' to generate data; \'pred\' requires generated data as input; \'all\' (default)',
                     choices=['data', 'pred', 'all'] ,required=False, default='all')
 parser.add_argument('-v', '--version', action='version', version='%(prog)s v. 1.0-gamma')
@@ -61,7 +60,6 @@ if args.run == 'data' or args.run == 'all':
     filename_w_ext = os.path.basename(full_path)
     filename = os.path.splitext(filename_w_ext)[0]
     output_path = str(os.path.abspath((args.output))) + '/'
-    print(output_path)
     if args.name:
         log_name = str(args.name)
         filename = str(args.name)
@@ -102,11 +100,23 @@ if args.run == 'data' or args.run == 'all':
         logging.info("Input file exists")
     else:
         logging.error("Input file not found"), sys.exit('Input file not found')
-
     logging.info("Input file is: " + full_path + ". File name is: " + filename)
     logging.info("Output will be in: " + output_path)
-
-    # print(full_path, filename_w_ext, filename)
+    logging.info("Number of CPUs available: " + str(os.cpu_count()))
+    if args.threads:
+        try:
+            n_thread = int(args.threads)
+        except:
+            logging.error("Invalid number of CPUs: value inserted not a number. ")
+            exit()
+        if int(args.threads) < os.cpu_count():
+            ncpu = int(args.threads)
+            logging.info("Number of CPUs to be used: " + str(ncpu))
+        else:
+            logging.error("Invalid number of CPUs: too many. ")
+            exit()
+    else:
+        ncpu = int(os.cpu_count())
 
     try:
         pathlib.Path(output_path + filename).mkdir(parents=True, exist_ok=False)
@@ -121,12 +131,6 @@ if args.run == 'data' or args.run == 'all':
     logging.info("Generating new fasta with shorter id")
     shortid_file = output_path + new_foldername + '/' + new_foldername + '.shortid.txt'
 
-    # md5sum = md5(full_path)
-    # if args.md5:
-    #     if md5sum == args.md5:
-    #         logging.info("Input md5 checksum confirmed")
-    #     else:
-    #         logging.error("Input md5 checksum failed. File corrupted."), sys.exit('Input md5 checksum failed. File corrupted. Please try again.')
 
     old_ids = []
     with open(args.input, 'r') as handle:
@@ -138,16 +142,21 @@ if args.run == 'data' or args.run == 'all':
                 newseqs.append(newrecord)
             SeqIO.write(newseqs, h, 'fasta')
     logging.info("New fasta saved to " + shortid_file)
+    with open(output_path + new_foldername + '/ID_' + new_foldername + '.id', 'w') as handle:
+        for id in old_ids:
+            handle.write("%s\n" % id)
+
 
 elif args.run == 'pred':
     full_path = os.path.abspath((args.input))
+    output_path = full_path.rsplit('/',1)[0] +'/'
     new_foldername = os.path.basename(full_path)
-    logging.basicConfig(filename='S4PLP_'+new_foldername+'.log', level=logging.DEBUG, filemode='w')
+    logging.basicConfig(filename='GP4_'+new_foldername+'.log', level=logging.DEBUG, filemode='w')
     log_name=new_foldername
     logging.info("Script sarted at " + str(t_start))
     if os.path.isdir(full_path):
         logging.info("Input folder is: " + new_foldername + ". Full path is: " + full_path)
-        shortid_file = output_path + new_foldername + '/' + new_foldername + '.shortid.txt'
+        shortid_file = full_path + new_foldername + '/' + new_foldername + '.shortid.txt'
 
     else:
         logging.error("Invalid input folder. Input is not a folder or does not exist.")
@@ -156,14 +165,13 @@ else:
     logging.error("--run option not allowed.")
     exit()
 
-
-outfile_SigP = output_path + new_foldername + '/SignalP4_' + new_foldername + '.csv'
-outfile_SigP5 = output_path + new_foldername + '/SignalP5_' + new_foldername + '.log'
+print(output_path + new_foldername + '/SignalP4_' + new_foldername + '.csv')
+outfile_SigP =  output_path + new_foldername + '/SignalP4_' + new_foldername + '.csv'
+outfile_SigP5 = output_path+ new_foldername + '/SignalP5_' + new_foldername + '.log'
 results_sigP5 = output_path + new_foldername + '/' + new_foldername + '_summary.signalp5'
 outfile_Pho = output_path + new_foldername + '/Phobius_' + new_foldername + '.csv'
 outfile_LipoP = output_path + new_foldername + '/LipoP_' + new_foldername + '.csv'
 outfile_TMHMM = output_path + new_foldername + '/TMHMM_' + new_foldername + '.csv'
-#outfile_Psort = output_path + new_foldername + '/Psort_' + new_foldername + '.csv'
 outfile_PCB = output_path + new_foldername + '/ProtCompB_' + new_foldername + '.csv'
 outfile_Predisi = output_path + new_foldername + '/PrediSi_' + new_foldername + '.csv'
 outfile_TatP = output_path + new_foldername + '/TatP_' + new_foldername + '.csv'
@@ -256,28 +264,10 @@ def PREDISI(path):
     stdout, stderr = Predisi_process.communicate()
     if stderr: logging.warning(stderr)
     stdout_f = BytesIO(stdout)
-    df = pandas.read_csv(stdout_f, sep=',', skiprows=4, index_col=None) #, names=['ID', 'Len', 'AA_TM', 'First60', 'Num_Hel', 'Topology'])
+    df = pandas.read_csv(stdout_f, sep=',', skiprows=4, index_col=None)
     with open(outfile_Predisi, 'w') as handle:
         df.to_csv(handle, sep='\t')
     logging.info("Predisi results saved to" + outfile_Predisi)
-
-# def PSORT(path):
-#     logging.info("Started PSORTb")
-#     Psort_process = Popen([PSortb_path + ' -p -o terse ' + path], stdout=PIPE, stderr=PIPE, shell=True)
-#     stdout, stderr = Psort_process.communicate()
-#     if stderr: logging.warning(stderr)
-#     if "Can't locate " in str(stderr):
-#         logging.info("PSORTb returned error. Trying again with environmental variable.")
-#         Psort_process = Popen([PSortb_path, '-p', '-o', 'terse', path], stdout=PIPE, stderr=PIPE, shell=False,
-#                               env={'PERL5LIB': PERL5LIB})
-#         stdout, stderr = Psort_process.communicate()
-#     if stderr: logging.warning(stderr)
-#     stdout_f = BytesIO(stdout)
-#     df = pandas.read_csv(stdout_f, sep='\t',
-#                          skiprows=0)  # , names=['ID', 'Len', 'AA_TM', 'First60', 'Num_Hel', 'Topology'])
-#     with open(outfile_Psort, 'w') as handle:
-#         df.to_csv(handle, sep='\t')
-#     logging.info("PSORTb results saved to " + outfile_Psort)
 
 
 def PROTCOMPB(path):
@@ -297,8 +287,7 @@ def PROTCOMPB(path):
     for i, l in zip(seqs, results):
         i.append((re.split(' ', l)[5]))
         i.append((re.split(' ', l)[-1]))
-    df = pandas.DataFrame(seqs, columns=['ID', 'Prediction',
-                                         'Score'])  # , names=['ID', 'Len', 'AA_TM', 'First60', 'Num_Hel', 'Topology'])
+    df = pandas.DataFrame(seqs, columns=['ID', 'Prediction', 'Score'])
     with open(outfile_PCB, 'w') as handle:
         df.to_csv(handle, sep='\t')
     logging.info("ProtCompB results saved to " + outfile_PCB)
@@ -343,8 +332,6 @@ def TATP(path):
 def INTERPRO(path):
     logging.info("Started InterproScan")
     pathlib.Path(outfolder_Interpro).mkdir(parents=True, exist_ok=False)
-    # Interpro_path, '-d ', outfolder_Interpro, '-iprlookup', '-pa', '-etra', '-goterms', '-i', path
-    # Interpro_path + ' -d '+ outfolder_Interpro+ ' -iprlookup -pa -etra -goterms -i '+ path
     Interpro_process = Popen([Interpro_path, '-d ', outfolder_Interpro, '-iprlookup', '-pa', '-etra', '-goterms', '-i', path], stdout=PIPE,
         stderr=PIPE, env={'PERL5LIB': PERL5LIB})
     stdout, stderr = Interpro_process.communicate()
@@ -363,33 +350,18 @@ def Interpro_arrange(row, list_domains, df, type):
         descr_col = 'Signature Description_Interpro'
     elif type == 'GO':
         annot_col = 'GO_annotation_Interpro'
-        # descr_col = ''
     for index_ipr, row_ipr in df.iterrows():
-        if row['name_SigP4'] == row_ipr['ID_Interpro']:  #### CHECK row.name or row[0] for ID column. DONE?
-            # print(row['name_SigP4'], row_ipr['ID_Interpro'])
+        if row['name_SigP4'] == row_ipr['ID_Interpro']:
             list_idx = pandas.DataFrame(columns=['ID','DOMAIN','IPR','DESCRIPTION'])
-            # print(list_idx)
             for i, s in enumerate(row_ipr[annot_col]):
-                # print('enu', i, s)
                 if not is_nan(s):
-                    # print('ifnot', i, s) # s, type(s))
-                    # print(searchDict(list_domains, str(s)))
                     dom, ipr = searchDict(list_domains, str(s))
                     if not dom == False:
-                        # print(dom, i, ipr, ipr[i])
                         if type == 'IPR' or type == 'NI':
                             line = {'ID': row_ipr['ID_Interpro'],'DOMAIN': dom, 'IPR': s, 'DESCRIPTION': row_ipr[descr_col][i]}
                         elif type == 'GO':
                             line = {'ID': row_ipr['ID_Interpro'],'DOMAIN': dom, 'IPR': s}
-                        # print(line)
                         list_idx = list_idx.append(line, ignore_index=True)
-                        # print(list_idx)
-                        # grouped = list_idx.groupby('DOMAIN')
-                        # try: ### TODO what does this do? I forgot. Probably is noy even working. Test with this commented and then decide. #seems not doing anything?
-                        #     cw_mp = (grouped.get_group('CW_mp'))['IPR'].tolist()
-                        #     print(cw_mp, type(cw_mp))
-                        # except KeyError:
-                        #     pass
             if list_idx.empty:
                 if type == 'IPR' or type == 'NI':
                     return np.nan, np.nan, np.nan
@@ -399,32 +371,14 @@ def Interpro_arrange(row, list_domains, df, type):
                 if type == 'IPR' or type == 'NI':
                     return list_idx['DOMAIN'].tolist(), list_idx['IPR'].tolist(), list_idx['DESCRIPTION'].tolist()
                 elif type == 'GO':
-                    # print(list_idx)
                     return list_idx['DOMAIN'].tolist(), list_idx['IPR'].tolist()
-
-    # return np.nan, np.nan, np.nan
-    # print(i, s)
-                    # print(list_idx)
-                    # list_idx.append([dom, int(i), ipr])
-                    # pos_descr = [row_ipr['IPR_description_Interpro'][i] for i in list_idx[1]]
-                    # list_idx[3] = pos_descr
-                    # print(list_idx)
-            # if len(list_idx) > 0:
-            # domians_found = []
-            # for key in list_domains:
-            #     try:
-            # pos_matches = [row_ipr['IPR_annotation_Interpro'][i] for i in list_idx]
-            # return list_idx[2], list_idx[3]
-            # elif len(list_idx) == 0:
-            #     return np.nan, np.nan
 
 def Predict(row):
     sec = 0
     tm = 0
     lipo = 0
     cyt = 0
-    sp_cl = []  #First AA of mature protein
-    tat_cl = []
+    sp_cl = []
     lipo_cl = []
     surf_b = False
     lant_b =False
@@ -433,8 +387,6 @@ def Predict(row):
     cw_nc = False
     cw_spore = False
     tat = False
-    #cw_ni_b = False
-    # lipo_ni_b = False
     sec_b =False
     pilin_b = False
     tm_b = False
@@ -450,17 +402,12 @@ def Predict(row):
     if row['Prediction_SigP5'] == 'SP(Sec/SPI)' or row['Prediction_SigP5'] == 'TAT(Tat/SPI)':
         sec +=1
         cl = re.search(r':(.*?)\.', str(row['CS Position_SigP5'])).group(1)
-        #print('cl_SP5', cl)
         cl = cl.split('-', 1)[1]
-        # if row['Prediction_SigP5'] == 'SP(Sec/SPI)':
         sp_cl.append(int(cl.strip()))
         sp_cl.append(int(cl.strip())) ### duplicated on purpose. if SigP5 then it has double weight.
-        # elif row['Prediction_SigP5'] == 'TAT(Tat/SPI)':
-        #     tat_cl.append(int(cl.strip()))
     elif row['Prediction_SigP5'] == 'LIPO(Sec/SPII)':
         lipo +=1
         cl = re.search(r':(.*?)\.', str(row['CS Position_SigP5'])).group(1)
-        #print('cl_SP5', cl)
         cl = cl.split('-', 1)[1]
         lipo_cl.append(int(cl.strip()))
     elif row['Prediction_SigP5'] == 'OTHER':
@@ -470,7 +417,6 @@ def Predict(row):
     if row['SP_Phobius'] == 'Y':
         sec +=1
         cl = re.search(r'/(.*?)o', str(row['PREDICTION_Phobius'])).group(1)
-        #print('cl_pho', cl)
         sp_cl.append(int(cl.strip()))
     elif row['SP_Phobius'] == '0':
         cyt +=1
@@ -500,12 +446,10 @@ def Predict(row):
     if row['Localization_LipoP'] == 'SpI':
         sec += 1
         cl = int(float(str(row['Cl_Site_LipoP']).split('-')[1]))
-        #print('cl_lipo', cl)
         sp_cl.append(cl)
     elif row['Localization_LipoP'] == 'SpII':
         lipo += 1
         cl = int(str(row['Cl_Site_LipoP']).split('-')[1])
-        #print('cl_lipo', cl)
         lipo_cl.append(cl)
     elif row['Localization_LipoP'] == 'CYT':
         cyt += 1
@@ -519,13 +463,6 @@ def Predict(row):
         tm += 1
     elif int(row['Num_Hel_TMHMM']) >= 3:
         tm += 2
-#Psortb
-    # if row['Localization_Psort'] == 'Extracellular' or row['Localization_Psort'] == 'Cellwall':
-    #     sec += 1
-    # elif row['Localization_Psort'] == 'Cytoplasmic':
-    #     cyt += 1
-    # elif row['Localization_Psort'] == 'CytoplasmicMembrane':
-    #     tm += 1
 #PCB
     if row['Prediction_PCB'] == 'Secreted':
         sec += 1
@@ -540,9 +477,6 @@ def Predict(row):
             if dom == 'CW_mp_ni':
                 cw_mp = True
                 cyt -= 1
-            # elif dom == 'Lipo_ni':
-            #     lipo += 1
-            #     lipo_ni_b = True
     ipr_dom = row['Domain_type']
     if not is_nan(ipr_dom):
         for dom in ipr_dom:
@@ -577,9 +511,6 @@ def Predict(row):
             elif dom == 'Tat':
                 sec += 1
                 tat = True
-#GO terms
-    ## GO_dict = {'Sec': ['GO:0005576'], 'CW': ['GO:0005618'], 'CW_spore': ['GO:0031160'], 'TM': ['GO:0005886', 'GO:0016021'],
-    ##           'CYTO': ['GO:0005829', 'GO:0005737', 'GO:0009295','GO:0043590'], 'Surf': ['GO:0009986', 'GO:0009987'], 'Pilin': ['GO:0009289', 'GO:0009288']}
 
     go_dom = row['GO_annotation_Interpro']
     if not is_nan(go_dom):
@@ -609,7 +540,7 @@ def Predict(row):
                 sec += 1
                 cyt -= 1
                 surf_b = True
-#Returns #TODO results and note as list so I can append values. At the end ' '.join(list).
+#Returns
     result = []
     note = []
     if sec_b or lant_b or sec >= 3:
@@ -625,7 +556,7 @@ def Predict(row):
             note.append('Short secreted peptide, could be a bacteriocin, lantibiotic, or similar.')
     if cw_mp or cw_nc or cw_spore or surf_b:
         result.append('CW')
-        cyt += -3 #TODO remove?
+        cyt += -3
         if cw_mp:
             note.append('Covalently attached to the CW.')
         if cw_nc:
@@ -644,7 +575,7 @@ def Predict(row):
                 if '(Sec/SpI)' in n:
                     note.remove(n)
             note.append('Contains a lipoprotein SP (Sec/SpII), most likely first a.a. of the mature protein: ' + str(cl_site) + '.')
-    if cyt_b or cyt >= 5: #TODO Put CYTO only if results is empty
+    if cyt_b or cyt >= 5:
         if cyt_b:
             result = ['CYTO']
         elif len(result) == 0:
@@ -693,8 +624,7 @@ def searchDict(myDict, lookup):
         for v in value:
             if str(lookup) in str(v):
                 return key, v
-    return False, False ### TODO maybe I could add an ' else: return False'  and then in Interpro_Arrange change to 'if not False'
-    # else:
+    return False, False
 
 def is_nan(val):
     try:
@@ -708,7 +638,6 @@ def most_common(lst):
 def split_GO(row):
     go_list = []
     for i, s in enumerate(row['GO_annotation_Interpro']):
-        # print(i,s)
         if not is_nan(s):
             if 'GO' in s:
                 try:
@@ -723,20 +652,25 @@ def split_GO(row):
 
 if args.run == 'data' or args.run == 'all':
 
-    ncpu = os.cpu_count()
-    pool = mp.Pool(processes=ncpu)
-    logging.info("Number of CPUs available: " + str(os.cpu_count()))
+    # if args.threads:
+    #     if type(args.threads) == int and args.threads < os.cpu_count():
+    #         ncpu = args.threads
+    #     else:
+    #         ncpu = os.cpu_count()
+    # else:
+    #     ncpu = os.cpu_count()
 
-    SigP5_out = pool.apply_async(SIGNALP5, [shortid_file])  #SIGNALP(args.input))
-    SigP_out = pool.apply_async(SIGNALP, [shortid_file])  #SIGNALP(args.input))
-    Pho_out = pool.apply_async(PHOBIUS, [shortid_file])  #SIGNALP(args.input))
-    Predisi_out = pool.apply_async(PREDISI, [shortid_file])  #SIGNALP(args.input))
-    LipoP_out = pool.apply_async(LIPOP, [shortid_file])  #SIGNALP(args.input))
-    TMHMM_out = pool.apply_async(TMHMM, [shortid_file])  #SIGNALP(args.input))
-  #  Psort_out = pool.apply_async(PSORT, [shortid_file])  #SIGNALP(args.input))
-    PCB_out = pool.apply_async(PROTCOMPB, [shortid_file])  #SIGNALP(args.input))
-    TatP_out = pool.apply_async(TATP, [shortid_file])  #SIGNALP(args.input))
-    Interpro_out = pool.apply_async(INTERPRO, [shortid_file])  # SIGNALP(args.input))
+    pool = mp.Pool(processes=ncpu)
+
+    SigP5_out = pool.apply_async(SIGNALP5, [shortid_file])
+    SigP_out = pool.apply_async(SIGNALP, [shortid_file])
+    Pho_out = pool.apply_async(PHOBIUS, [shortid_file])
+    Predisi_out = pool.apply_async(PREDISI, [shortid_file])
+    LipoP_out = pool.apply_async(LIPOP, [shortid_file])
+    TMHMM_out = pool.apply_async(TMHMM, [shortid_file])
+    PCB_out = pool.apply_async(PROTCOMPB, [shortid_file])
+    TatP_out = pool.apply_async(TATP, [shortid_file])
+    Interpro_out = pool.apply_async(INTERPRO, [shortid_file])
 
     pool.close()
     pool.join()
@@ -747,7 +681,6 @@ if args.run == 'pred' or args.run == 'all':
 
     logging.info("Now final predictions are being done.")
 
-    # results_df = pandas.DataFrame()
     with open(outfile_SigP, 'r') as handle:
         results_df = pandas.read_csv(handle, sep='\t', index_col=0, converters={'name': strip})
         results_df.columns = results_df.columns.map(lambda x: str(x) + '_SigP4')
@@ -756,7 +689,6 @@ if args.run == 'pred' or args.run == 'all':
         SigP5_df = pandas.read_csv(handle, sep='\t', skiprows=1, index_col=None, converters={'# ID': strip})
         SigP5_df.columns = SigP5_df.columns.map(lambda x: str(x) + '_SigP5')
         if len(results_df.index) == len(SigP5_df.index):
-        # print(SigP5_df)
             results_df = pandas.concat([results_df, SigP5_df], axis=1 )  #left_on='name_SigP4', right_on='# ID_SigP5'
         else:
             logging.error('SigP5 ERROR, protein num does not match')
@@ -787,11 +719,6 @@ if args.run == 'pred' or args.run == 'all':
         TMHMM_df.columns = TMHMM_df.columns.map(lambda x: str(x) + '_TMHMM')
         results_df = results_df.merge(TMHMM_df, how='left', left_on='name_SigP4', right_on='ID_TMHMM')
 
-    # with open(outfile_Psort) as handle:
-    #     Psort_df = pandas.read_csv(handle, sep='\t', index_col=0, converters={'SeqID': strip})
-    #     Psort_df.columns = Psort_df.columns.map(lambda x: str(x) + '_Psort')
-    #     results_df = results_df.merge(Psort_df, how='left', left_on='name_SigP4', right_on='SeqID_Psort')
-
     with open(outfile_PCB) as handle:
         PCB_df = pandas.read_csv(handle, sep='\t', index_col=0, converters={'SeqID': strip})
         PCB_df.columns = PCB_df.columns.map(lambda x: str(x) + '_PCB')
@@ -812,11 +739,6 @@ if args.run == 'pred' or args.run == 'all':
 
     GO_dict = {'Sec': ['GO:0005576'], 'CW': ['GO:0005618'], 'CW_spore': ['GO:0031160'], 'TM': ['GO:0005886', 'GO:0016021'],
                'CYTO': ['GO:0005829', 'GO:0005737', 'GO:0009295','GO:0043590'], 'Surf': ['GO:0009986', 'GO:0009897'], 'Pilin': ['GO:0009289', 'GO:0009288']}
-    ### TODO finish to add compartments #probably all now? #consider adding profile from BAGEL3 publication
-    # TM could be also GO:0005886 or GO:0005887 (child of GO:0016020)
-    # GO0009295 is nucleoid
-    ### TODO GO:0009288 bacterial-type flagellum, GO:0009289 pilus
-    # maybe add  GO:0043593 endospore coat, GO:0009419 pilus tip, GO:0043188 septum, GO:0009418 pilus shaft
 
 
     outfile_Interpro = outfolder_Interpro + '/' + os.path.basename(shortid_file) + '.tsv'
@@ -832,15 +754,13 @@ if args.run == 'pred' or args.run == 'all':
 
         Interpro_reduced_df = Interpro_df.groupby('ID_Interpro', as_index=False)['IPR_annotation_Interpro', 'IPR_description_Interpro'].agg(lambda x: list(x))
         results_df[['Domain_type', 'IPR_annotation_Interpro', 'IPR_description_Interpro']] = results_df.apply(lambda row:
-                                                pandas.Series(Interpro_arrange(row, Domains, Interpro_reduced_df, 'IPR')), axis=1)  #### CHECK row.name or row[0] for ID column
+                                                pandas.Series(Interpro_arrange(row, Domains, Interpro_reduced_df, 'IPR')), axis=1)
         ni_reduced_df = Interpro_df.groupby('ID_Interpro', as_index=False)['Signature Accession_Interpro', 'Signature Description_Interpro'].agg(lambda x: list(x))
         results_df[['Domain_type_ni', 'ni_annotation_Interpro', 'ni_description_Interpro']] = results_df.apply(lambda row:
-                                                pandas.Series(Interpro_arrange(row, Domains_ni, ni_reduced_df, 'NI')), axis=1)  #### CHECK row.name or row[0] for ID column
+                                                pandas.Series(Interpro_arrange(row, Domains_ni, ni_reduced_df, 'NI')), axis=1)
         go_reduced_df = Interpro_df.groupby('ID_Interpro', as_index=True)['GO_annotation_Interpro'].agg(lambda x: list(x))
         go_reduced_df = go_reduced_df.to_frame().reset_index()
-        # print('GO_DF', go_reduced_df)
         go_reduced_df['GO_annotation_Interpro'] = go_reduced_df.apply(lambda row: split_GO(row), axis=1)
-        # print('GO_DF1', go_reduced_df)
         results_df[['GO_annotation_Interpro','GO_terms_Interpro']] = results_df.apply(lambda row:
                                             pandas.Series(Interpro_arrange(row, GO_dict, go_reduced_df, 'GO')), axis=1)
 
@@ -854,10 +774,15 @@ if args.run == 'pred' or args.run == 'all':
 
     results_df[['Predicted_SCL', 'Notes_SCL']] = results_df.apply(lambda row: pandas.Series(Predict(row)), axis=1)
 
-    results_df = results_df.drop(labels=['# ID_SigP5', 'SEQENCE_ID_Phobius', 'FASTA-ID_PrediSi', 'ID_TatP', 'ID_LipoP', 'ID_TMHMM', 'ID_PCB'], axis=1) #'SeqID_Psort'
+    results_df = results_df.drop(labels=['# ID_SigP5', 'SEQENCE_ID_Phobius', 'FASTA-ID_PrediSi', 'ID_TatP', 'ID_LipoP', 'ID_TMHMM', 'ID_PCB'], axis=1)
     results_df = results_df.rename(columns={"name_SigP4": "Protein_ID"})
-    results_df['Protein_ID'] = old_ids
 
+    if args.run == 'all':
+        results_df['Protein_ID'] = old_ids
+    elif args.run == 'pred':
+        with open(output_path + new_foldername + '/ID_' + new_foldername + '.id', 'r') as handle:
+            old_ids = handle.read().splitlines()
+        results_df['Protein_ID'] = old_ids
 
     with open(outfile_results, 'w') as handle:
         results_df.to_csv(handle, sep='\t')
@@ -867,5 +792,7 @@ if args.run == 'pred' or args.run == 'all':
 t_end = datetime.datetime.now()
 t_diff = t_end - t_start
 logging.info("Run finished at " + str(t_end) + ", in " + str(t_diff) + ". You can find the final results in: " + outfile_results)
-shutil.move('GP4_'+log_name+'.log', 'Results/' + new_foldername)
-
+if args.run == 'data' or args.run == 'all':
+    shutil.move('GP4_'+log_name+'.log', output_path + new_foldername + '/')
+elif args.run == 'pred':
+    shutil.move(script_path +'/' + 'GP4_' + log_name + '.log', output_path + new_foldername + '/' +'GP4_' + log_name + '_2' + '.log')
