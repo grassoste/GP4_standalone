@@ -41,13 +41,13 @@ __author__ = 'StefanoGrasso'
 parser = argparse.ArgumentParser(description='Script to perform a proteomic based consensus prediction of '
                                              'protein localization in Gram+. Written by Stefano Grasso (c).',
                                  prog='GP4')
-parser.add_argument('-i', '--input', help='Input file', required=True)
-parser.add_argument('-o', '--output', help='Output folder name', required=False, default='Results')
-parser.add_argument('-n', '--name', help='Output file name', required=False)
+parser.add_argument('-i', '--input', help='Input file. If you chose -r "pred" then indicate the folder with the generated data.', required=True)
+parser.add_argument('-o', '--output', help='Output folder. Default: Results', required=False, default='Results')
+parser.add_argument('-n', '--name', help='Output file name. Default: same as input name. If already existing a short string will be attached to it.', required=False)
 parser.add_argument('-t', '--threads', help='Number of threads to be used. Default: all.', required=False)
-parser.add_argument('-r', '--run', help='\'data\' to generate data; \'pred\' requires generated data as input; \'all\' (default)',
+parser.add_argument('-r', '--run', help='\'data\' to generate data; \'pred\' requires generated data as input; \'all\' (default).',
                     choices=['data', 'pred', 'all'] ,required=False, default='all')
-parser.add_argument('-v', '--version', action='version', version='%(prog)s v. 1.0-gamma')
+parser.add_argument('-v', '--version', action='version', version='%(prog)s v. 1.0-beta')
 args = parser.parse_args()
 
 t_start = datetime.datetime.now()
