@@ -38,7 +38,8 @@ We suggest to first test the installation by running a fasta file with a single 
 
 ### Examples of usage
 
-```usage: GP4 [-h] -i INPUT [-o OUTPUT] [-n NAME] [-t THREADS]
+```
+usage: GP4 [-h] -i INPUT [-o OUTPUT] [-n NAME] [-t THREADS]
            [-r {data,pred,all}] [-v]
 
 Script to perform a proteomic based consensus prediction of protein
