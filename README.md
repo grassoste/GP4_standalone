@@ -1,4 +1,4 @@
-# GP4 standalone
+# GP<sup>4</sup> standalone
 ## Gram-Positive Protein Prediction Pipeline
 
 Standalone version of the prediction tool presented in the publication: 
@@ -6,7 +6,7 @@ Standalone version of the prediction tool presented in the publication:
 
 ### Requisites
 
-To run GP4 locally you first need to download and install the following programs on your local machine:
+To run GP<sup>4</sup> locally you first need to download and install the following programs on your local machine:
 	
 * SignalP 4.1 (https://services.healthtech.dtu.dk/software.php)
 * SignalP 5.0 (https://services.healthtech.dtu.dk/software.php)
@@ -95,9 +95,10 @@ You can also select the number of threads to generate the data in parallel (this
 
 ### Cite us!
 
-If you use our tool in your paper please cite: 
+If you use our tool in your paper please cite: Stefano Grasso, Tjeerd van Rij, Jan Maarten van Dijl, GP<sup>4</sup>: an integrated Gram-Positive Protein Prediction Pipeline for subcellular localization mimicking bacterial sorting, *Briefings in Bioinformatics*, Volume 22, Issue 4, July 2021, bbaa302, https://doi.org/10.1093/bib/bbaa302
+
 
 ### Troubleshooting
 
-If you run in any issue specific with GP4, please report it. We'll try to help you! 
+If you run in any issue specific with GP<sup>4</sup>, please report it. We'll try to help you! 
 In the meanwhile you can run your predictions at: http://gp4.hpc.rug.nl/
