@@ -95,7 +95,9 @@ You can also select the number of threads to generate the data in parallel (this
 
 ### Cite us!
 
-If you use our tool in your paper please cite: Stefano Grasso, Tjeerd van Rij, Jan Maarten van Dijl, GP<sup>4</sup>: an integrated Gram-Positive Protein Prediction Pipeline for subcellular localization mimicking bacterial sorting, *Briefings in Bioinformatics*, Volume 22, Issue 4, July 2021, bbaa302, https://doi.org/10.1093/bib/bbaa302
+If you use our tool in your paper please cite: 
+
+Stefano Grasso, Tjeerd van Rij, Jan Maarten van Dijl, "GP<sup>4</sup>: an integrated Gram-Positive Protein Prediction Pipeline for subcellular localization mimicking bacterial sorting", *Briefings in Bioinformatics*, Volume 22, Issue 4, July 2021, bbaa302, https://doi.org/10.1093/bib/bbaa302
 
 
 ### Troubleshooting
